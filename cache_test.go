@@ -16,21 +16,37 @@ type TestStruct struct {
 
 func (t *TestStruct) Key() string { return fmt.Sprintf("%d_%s", t.ID, t.Name) }
 
+var connection = "localhost:6379"
+
 func TestCacheInit(t *testing.T) {
-	c := cache.NewCache("", "prefix", func(key string) (*TestStruct, error) { return nil, nil })
+	c := cache.NewCache(connection, "prefix", func(key string) (*TestStruct, error) { return nil, nil })
 	assert.NotNil(t, c)
 }
 
 // TODO: make this test functional
 func TestCacheGet(t *testing.T) {
-	c := cache.NewCache("", "prefix", func(key string) (*TestStruct, error) { return nil, nil })
-	_, err := c.Get(context.Background(), "test")
+	c := cache.NewCache(connection, "prefix", func(key string) (*TestStruct, error) { return nil, nil })
+	ts := &TestStruct{
+		ID:   1,
+		Name: "James",
+	}
+
+	err := c.Set(context.Background(), ts)
 	assert.NoError(t, err)
-	// assert.NotNil(t, val)
+
+	val, err := c.Get(context.Background(), ts.Key())
+	assert.NoError(t, err)
+	assert.NotNil(t, val)
 }
 
-func TestCacheStore(t *testing.T) {
-	c := cache.NewCache("", "prefix", func(key string) (*TestStruct, error) { return nil, nil })
+func TestCacheStore_CallBack(t *testing.T) {
+	c := cache.NewCache(connection, "prefix", func(key string) (*TestStruct, error) { return &TestStruct{2, "Ryan"}, nil })
 	err := c.Set(context.Background(), &TestStruct{})
 	assert.NoError(t, err)
+
+	result, err := c.Get(context.Background(), "nothing_here")
+	assert.NoError(t, err)
+
+	assert.Equal(t, uint(2), result.ID)
+	assert.Equal(t, "Ryan", result.Name)
 }
