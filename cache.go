@@ -38,8 +38,8 @@ func NewCache[T Cacheable](cacheURL string, prefix string, callBackFn CallBackFn
 // Get returns a value from the cache if there is one
 func (c RedisCache[T]) Get(ctx context.Context, key string) (T, error) {
 	var zero T
-	result := c.cache.Get(ctx, fmt.Sprintf("%s_%s", c.prefix, key))
 
+	result := c.cache.Get(ctx, fmt.Sprintf("%s_%s", c.prefix, key))
 	if result.Err() != nil {
 		res, err := c.callBack(fmt.Sprintf("%s_%s", c.prefix, key))
 		if err != nil {
