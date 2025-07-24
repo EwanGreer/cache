@@ -18,7 +18,11 @@ func (u *User) Key() string {
 
 func main() {
 	c := cache.NewCache("localhost:6379", "user_cache", func(key string) (*User, error) {
-		return nil, nil
+		fmt.Println("CalledBack")
+		return &User{
+			ID:   2,
+			Name: "CallBackUser",
+		}, nil
 	})
 
 	c.Set(context.TODO(), &User{

@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -37,7 +38,17 @@ func NewCache[T Cacheable](cacheURL string, prefix string, callBackFn CallBackFn
 // Get returns a value from the cache if there is one
 func (c RedisCache[T]) Get(ctx context.Context, key string) (T, error) {
 	var zero T
-	result := c.cache.Get(ctx, key)
+	result := c.cache.Get(ctx, fmt.Sprintf("%s_%s", c.prefix, key))
+
+	if result.Err() != nil {
+		res, err := c.callBack(fmt.Sprintf("%s_%s", c.prefix, key))
+		if err != nil {
+			return zero, err
+		}
+
+		_ = c.cache.Set(ctx, key, result, 1*time.Minute)
+		return res, nil
+	}
 
 	var data T
 	err := json.Unmarshal([]byte(result.Val()), &data)
@@ -55,7 +66,7 @@ func (c RedisCache[T]) Set(ctx context.Context, item T) error {
 		return err
 	}
 
-	_ = c.cache.Set(ctx, item.Key(), b, 1*time.Minute)
+	_ = c.cache.Set(ctx, fmt.Sprintf("%s_%s", c.prefix, item.Key()), b, 1*time.Minute)
 
 	return nil
 }
