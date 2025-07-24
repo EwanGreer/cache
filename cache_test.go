@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/egreerdp/cache"
 	"github.com/stretchr/testify/assert"
@@ -19,13 +20,13 @@ func (t *TestStruct) Key() string { return fmt.Sprintf("%d_%s", t.ID, t.Name) }
 var connection = "localhost:6379"
 
 func TestCacheInit(t *testing.T) {
-	c := cache.NewCache(connection, "prefix", func(key string) (*TestStruct, error) { return nil, nil })
+	c := cache.NewCache(connection, "prefix", 1*time.Minute, func(key string) (*TestStruct, error) { return nil, nil })
 	assert.NotNil(t, c)
 }
 
 // TODO: make this test functional
 func TestCacheGet(t *testing.T) {
-	c := cache.NewCache(connection, "prefix", func(key string) (*TestStruct, error) { return nil, nil })
+	c := cache.NewCache(connection, "prefix", 1*time.Minute, func(key string) (*TestStruct, error) { return nil, nil })
 	ts := &TestStruct{
 		ID:   1,
 		Name: "James",
@@ -40,7 +41,7 @@ func TestCacheGet(t *testing.T) {
 }
 
 func TestCacheStore_CallBack(t *testing.T) {
-	c := cache.NewCache(connection, "prefix", func(key string) (*TestStruct, error) { return &TestStruct{2, "Ryan"}, nil })
+	c := cache.NewCache(connection, "prefix", 1*time.Minute, func(key string) (*TestStruct, error) { return &TestStruct{2, "Ryan"}, nil })
 	err := c.Set(context.Background(), &TestStruct{})
 	assert.NoError(t, err)
 

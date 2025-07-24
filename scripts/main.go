@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/egreerdp/cache"
 )
@@ -17,8 +18,7 @@ func (u *User) Key() string {
 }
 
 func main() {
-	c := cache.NewCache("localhost:6379", "user_cache", func(key string) (*User, error) {
-		fmt.Println("CalledBack")
+	c := cache.NewCache("localhost:6379", "user_cache", 1*time.Minute, func(key string) (*User, error) {
 		return &User{
 			ID:   2,
 			Name: "CallBackUser",

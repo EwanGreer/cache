@@ -17,6 +17,7 @@ type Cacheable interface {
 type RedisCache[T Cacheable] struct {
 	cache    *redis.Client
 	prefix   string // prefix before the item key
+	ttl      time.Duration
 	callBack CallBackFn[T]
 }
 
@@ -25,17 +26,18 @@ type RedisCache[T Cacheable] struct {
 type CallBackFn[T Cacheable] func(key string) (T, error)
 
 // NewCache returns an instance of Cache[T]
-func NewCache[T Cacheable](cacheURL string, prefix string, callBackFn CallBackFn[T]) RedisCache[T] {
-	client := redis.NewClient(&redis.Options{Addr: cacheURL})
+func NewCache[T Cacheable](cacheURL string, prefix string, ttl time.Duration, callBackFn CallBackFn[T]) RedisCache[T] {
+	client := redis.NewClient(&redis.Options{Addr: cacheURL, DB: 0})
 
 	return RedisCache[T]{
 		cache:    client,
 		prefix:   prefix,
+		ttl:      ttl,
 		callBack: callBackFn,
 	}
 }
 
-// Get returns a value from the cache if there is one
+// Get returns a value from the cache. On a miss the callback is excuted, the result is stored in the cache and returned
 func (c RedisCache[T]) Get(ctx context.Context, key string) (T, error) {
 	var zero T
 
@@ -46,7 +48,7 @@ func (c RedisCache[T]) Get(ctx context.Context, key string) (T, error) {
 			return zero, err
 		}
 
-		_ = c.cache.Set(ctx, key, result, 1*time.Minute)
+		_ = c.cache.Set(ctx, key, res, c.ttl)
 		return res, nil
 	}
 
@@ -66,7 +68,7 @@ func (c RedisCache[T]) Set(ctx context.Context, item T) error {
 		return err
 	}
 
-	_ = c.cache.Set(ctx, fmt.Sprintf("%s_%s", c.prefix, item.Key()), b, 1*time.Minute)
+	_ = c.cache.Set(ctx, fmt.Sprintf("%s_%s", c.prefix, item.Key()), b, c.ttl)
 
 	return nil
 }
