@@ -25,12 +25,14 @@ func main() {
 		}, nil
 	})
 
-	c.Set(context.TODO(), &User{
+	user := &User{
 		ID:   1,
 		Name: "User1",
-	})
+	}
 
-	u, err := c.Get(context.TODO(), "1_User1")
+	c.Set(context.TODO(), user)
+
+	u, err := c.Get(context.TODO(), user.Key())
 	if err != nil {
 		panic(err)
 	}
