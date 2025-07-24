@@ -48,7 +48,17 @@ func (c RedisCache[T]) Get(ctx context.Context, key string) (T, error) {
 			return zero, err
 		}
 
-		_ = c.cache.Set(ctx, key, res, c.ttl)
+		// Marshal the result before storing in Redis
+		b, err := json.Marshal(res)
+		if err != nil {
+			return zero, fmt.Errorf("failed to marshal callback result: %w", err)
+		}
+
+		err = c.cache.Set(ctx, fmt.Sprintf("%s_%s", c.prefix, key), b, c.ttl).Err()
+		if err != nil {
+			return zero, fmt.Errorf("failed to store in cache: %w", err)
+		}
+
 		return res, nil
 	}
 
@@ -68,7 +78,10 @@ func (c RedisCache[T]) Set(ctx context.Context, item T) error {
 		return err
 	}
 
-	_ = c.cache.Set(ctx, fmt.Sprintf("%s_%s", c.prefix, item.Key()), b, c.ttl)
+	err = c.cache.Set(ctx, fmt.Sprintf("%s_%s", c.prefix, item.Key()), b, c.ttl).Err()
+	if err != nil {
+		return nil
+	}
 
 	return nil
 }

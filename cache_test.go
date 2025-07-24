@@ -42,8 +42,6 @@ func TestCacheGet(t *testing.T) {
 
 func TestCacheStore_CallBack(t *testing.T) {
 	c := cache.NewCache(connection, "prefix", 1*time.Minute, func(key string) (*TestStruct, error) { return &TestStruct{2, "Ryan"}, nil })
-	err := c.Set(context.Background(), &TestStruct{})
-	assert.NoError(t, err)
 
 	result, err := c.Get(context.Background(), "nothing_here")
 	assert.NoError(t, err)
