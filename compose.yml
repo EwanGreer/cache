@@ -1,0 +1,7 @@
+services:
+  redis:
+    image: redis:latest # Specifies the Redis image. 'latest' is okay for development, but consider a specific version (e.g., redis:7.0.12) for production for stability.
+    container_name: my-redis-server # Optional: Gives your container a memorable name
+    ports:
+      - "6379:6379" # Maps port 6379 on your host to port 6379 in the container.
+    restart: always # Optional: Ensures the container restarts if it crashes or Docker restarts.
