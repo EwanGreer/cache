@@ -28,7 +28,6 @@ func TestCacheInit(t *testing.T) {
 	assert.NotNil(t, c)
 }
 
-// TODO: make this test functional
 func TestCacheGet(t *testing.T) {
 	c, close, err := cache.NewCache(&redis.Options{Addr: connection}, 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) { return nil, nil })
 	defer close()
