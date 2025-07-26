@@ -1,0 +1,10 @@
+[env]
+ENV = "development"
+
+[tools]
+go = "1.24"
+
+[tasks]
+[tasks.compose]
+run = "docker compose -f compose.yml"
+description = "docker compose alias"
