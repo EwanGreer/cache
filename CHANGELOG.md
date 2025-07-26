@@ -1,3 +1,15 @@
+## v0.2.0 (2025-07-26)
+
+### Feat
+
+- return redis close func
+- init mise
+
+### Fix
+
+- rm comment
+- move private func to bottom of file
+
 ## v0.1.0 (2025-07-26)
 
 ### Feat
