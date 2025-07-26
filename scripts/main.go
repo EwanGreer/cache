@@ -17,11 +17,15 @@ func (u *User) Key() string {
 	return fmt.Sprintf("%d_%s", u.ID, u.Name)
 }
 
+func (u *User) Prefix() string {
+	return "user"
+}
+
 func main() {
-	c := cache.NewCache("localhost:6379", "user_cache", 1*time.Minute, func(key string) (*User, error) {
+	c := cache.NewCache("localhost:6379", 1*time.Minute, func(ctx context.Context, key string) (*User, error) {
 		return &User{
 			ID:   2,
-			Name: "CallBackUser",
+			Name: "CallbackUser",
 		}, nil
 	})
 
