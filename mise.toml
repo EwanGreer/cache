@@ -8,3 +8,7 @@ go = "1.24"
 [tasks.compose]
 run = "docker compose -f compose.yml"
 description = "docker compose alias"
+
+[tasks.unit]
+run = "go test ./..."
+description = "Run all unit tests"

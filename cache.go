@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -13,6 +12,7 @@ import (
 // Cacheable represents an item that can be stored or retrieved
 type Cacheable interface {
 	Key() string
+	// Prefix must be nil safe - meaning it should return a constant
 	Prefix() string
 }
 
@@ -27,16 +27,29 @@ type RedisCache[T Cacheable] struct {
 // It takes a key (string) and returns the data (T) and an error.
 type CallBackFn[T Cacheable] func(ctx context.Context, key string) (T, error)
 
-// NewCache returns an instance of Cache[T]
-func NewCache[T Cacheable](cacheURL string, ttl time.Duration, callBackFn CallBackFn[T]) RedisCache[T] {
-	client := redis.NewClient(&redis.Options{Addr: cacheURL, DB: 0})
+// NewCache returns an instance of Cache[T], a cleanup function and a potential error
+func NewCache[T Cacheable](opts *redis.Options, ttl time.Duration, callBackFn CallBackFn[T]) (RedisCache[T], func() error, error) {
+	var zero RedisCache[T]
+
+	client := redis.NewClient(opts)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := client.Ping(ctx).Err(); err != nil {
+		client.Close()
+		return zero, nil, fmt.Errorf("failed to connect to Redis at %s: %w", opts.Addr, err)
+	}
+
+	var t T
+	prefix := t.Prefix()
 
 	return RedisCache[T]{
 		cache:    client,
-		prefix:   newInstanceOfT[T]().Prefix(),
+		prefix:   prefix,
 		ttl:      ttl,
 		callBack: callBackFn,
-	}
+	}, client.Close, nil
 }
 
 // Get returns a value from the cache. On a miss the callback is executed, the result is stored in the cache and returned
@@ -45,7 +58,7 @@ func (c RedisCache[T]) Get(ctx context.Context, key string) (T, error) {
 
 	result := c.cache.Get(ctx, c.formatKey(key))
 	if result.Err() != nil {
-		res, err := c.callBack(ctx, c.formatKey(key))
+		res, err := c.callBack(ctx, key)
 		if err != nil {
 			return zero, err
 		}
@@ -81,21 +94,27 @@ func (c RedisCache[T]) Set(ctx context.Context, item T) error {
 
 	err = c.cache.Set(ctx, c.formatKey(item.Key()), b, c.ttl).Err()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return nil
 }
 
 func (c RedisCache[T]) formatKey(key string) string {
-	return fmt.Sprintf("%s_%s", c.prefix, key)
+	return fmt.Sprintf("%s:%s", c.prefix, key)
 }
 
-func newInstanceOfT[T any]() T {
-	var t T
-	tType := reflect.TypeOf(t)
-	if tType.Kind() == reflect.Ptr {
-		return reflect.New(tType.Elem()).Interface().(T)
+// ParseRedisURL parses a Redis URL and returns redis.Options
+// Supported format: redis[s]://[[user][:password]@]host[:port][/db-number]
+func ParseRedisURL(redisURL string) (*redis.Options, error) {
+	if redisURL == "" {
+		return nil, fmt.Errorf("redis URL cannot be empty")
 	}
-	return reflect.New(tType).Elem().Interface().(T)
+
+	opts, err := redis.ParseURL(redisURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid Redis URL %q: %w", redisURL, err)
+	}
+
+	return opts, nil
 }

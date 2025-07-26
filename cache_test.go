@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/egreerdp/cache"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,19 +22,24 @@ func (t *TestStruct) Prefix() string { return "prefix" }
 var connection = "localhost:6379"
 
 func TestCacheInit(t *testing.T) {
-	c := cache.NewCache(connection, 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) { return nil, nil })
+	c, close, err := cache.NewCache(&redis.Options{Addr: connection}, 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) { return nil, nil })
+	defer close()
+	assert.NoError(t, err)
 	assert.NotNil(t, c)
 }
 
 // TODO: make this test functional
 func TestCacheGet(t *testing.T) {
-	c := cache.NewCache(connection, 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) { return nil, nil })
+	c, close, err := cache.NewCache(&redis.Options{Addr: connection}, 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) { return nil, nil })
+	defer close()
+	assert.NoError(t, err)
+
 	ts := &TestStruct{
 		ID:   1,
 		Name: "James",
 	}
 
-	err := c.Set(context.Background(), ts)
+	err = c.Set(context.Background(), ts)
 	assert.NoError(t, err)
 
 	val, err := c.Get(context.Background(), ts.Key())
@@ -42,12 +48,14 @@ func TestCacheGet(t *testing.T) {
 }
 
 func TestCacheStore_CallBack(t *testing.T) {
-	c := cache.NewCache(connection, 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) {
+	c, close, err := cache.NewCache(&redis.Options{Addr: connection}, 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) {
 		return &TestStruct{
 			ID:   2,
 			Name: "Ryan",
 		}, nil
 	})
+	defer close()
+	assert.NoError(t, err)
 
 	result, err := c.Get(context.Background(), "nothing_here")
 	assert.NoError(t, err)

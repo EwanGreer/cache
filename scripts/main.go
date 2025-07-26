@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/egreerdp/cache"
+	"github.com/redis/go-redis/v9"
 )
 
 type User struct {
@@ -22,12 +23,17 @@ func (u *User) Prefix() string {
 }
 
 func main() {
-	c := cache.NewCache("localhost:6379", 1*time.Minute, func(ctx context.Context, key string) (*User, error) {
+	c, close, err := cache.NewCache(&redis.Options{Addr: "localhost:6379"}, 1*time.Minute, func(ctx context.Context, key string) (*User, error) {
 		return &User{
 			ID:   2,
 			Name: "CallbackUser",
 		}, nil
 	})
+	if err != nil {
+		panic(err)
+	}
+
+	defer close()
 
 	user := &User{
 		ID:   1,
