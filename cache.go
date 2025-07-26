@@ -100,10 +100,6 @@ func (c RedisCache[T]) Set(ctx context.Context, item T) error {
 	return nil
 }
 
-func (c RedisCache[T]) formatKey(key string) string {
-	return fmt.Sprintf("%s:%s", c.prefix, key)
-}
-
 // ParseRedisURL parses a Redis URL and returns redis.Options
 // Supported format: redis[s]://[[user][:password]@]host[:port][/db-number]
 func ParseRedisURL(redisURL string) (*redis.Options, error) {
@@ -117,4 +113,8 @@ func ParseRedisURL(redisURL string) (*redis.Options, error) {
 	}
 
 	return opts, nil
+}
+
+func (c RedisCache[T]) formatKey(key string) string {
+	return fmt.Sprintf("%s:%s", c.prefix, key)
 }
