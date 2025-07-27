@@ -28,17 +28,15 @@ type RedisCache[T Cacheable] struct {
 type CallBackFn[T Cacheable] func(ctx context.Context, key string) (T, error)
 
 // NewCache returns an instance of Cache[T], a cleanup function and a potential error
-func NewCache[T Cacheable](opts *redis.Options, ttl time.Duration, callBackFn CallBackFn[T]) (RedisCache[T], func() error, error) {
+func NewCache[T Cacheable](client *redis.Client, ttl time.Duration, callBackFn CallBackFn[T]) (RedisCache[T], func() error, error) {
 	var zero RedisCache[T]
-
-	client := redis.NewClient(opts)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := client.Ping(ctx).Err(); err != nil {
 		client.Close()
-		return zero, nil, fmt.Errorf("failed to connect to Redis at %s: %w", opts.Addr, err)
+		return zero, nil, fmt.Errorf("failed to connect to Redis at %s: %w", client.Options().Addr, err)
 	}
 
 	var t T

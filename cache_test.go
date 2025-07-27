@@ -22,14 +22,14 @@ func (t *TestStruct) Prefix() string { return "prefix" }
 var connection = "localhost:6379"
 
 func TestCacheInit(t *testing.T) {
-	c, close, err := cache.NewCache(&redis.Options{Addr: connection}, 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) { return nil, nil })
+	c, close, err := cache.NewCache(redis.NewClient(&redis.Options{Addr: connection}), 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) { return nil, nil })
 	defer close()
 	assert.NoError(t, err)
 	assert.NotNil(t, c)
 }
 
 func TestCacheGet(t *testing.T) {
-	c, close, err := cache.NewCache(&redis.Options{Addr: connection}, 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) { return nil, nil })
+	c, close, err := cache.NewCache(redis.NewClient(&redis.Options{Addr: connection}), 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) { return nil, nil })
 	defer close()
 	assert.NoError(t, err)
 
@@ -47,7 +47,7 @@ func TestCacheGet(t *testing.T) {
 }
 
 func TestCacheStore_CallBack(t *testing.T) {
-	c, close, err := cache.NewCache(&redis.Options{Addr: connection}, 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) {
+	c, close, err := cache.NewCache(redis.NewClient(&redis.Options{Addr: connection}), 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) {
 		return &TestStruct{
 			ID:   2,
 			Name: "Ryan",
