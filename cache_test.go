@@ -19,7 +19,7 @@ type TestStruct struct {
 func (t *TestStruct) Key() string    { return fmt.Sprintf("%d_%s", t.ID, t.Name) }
 func (t *TestStruct) Prefix() string { return "prefix" }
 
-var connection = "localhost:6379"
+const connection = "localhost:6379"
 
 func TestCacheInit(t *testing.T) {
 	c, close, err := cache.NewCache(redis.NewClient(&redis.Options{Addr: connection}), 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) { return nil, nil })
