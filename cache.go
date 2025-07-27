@@ -17,7 +17,7 @@ type Cacheable interface {
 }
 
 type RedisCache[T Cacheable] struct {
-	cache    *redis.Client
+	client   *redis.Client
 	ttl      time.Duration
 	prefix   string
 	callBack CallBackFn[T]
@@ -43,7 +43,7 @@ func NewCache[T Cacheable](client *redis.Client, ttl time.Duration, callBackFn C
 	prefix := t.Prefix()
 
 	return RedisCache[T]{
-		cache:    client,
+		client:   client,
 		prefix:   prefix,
 		ttl:      ttl,
 		callBack: callBackFn,
@@ -54,7 +54,7 @@ func NewCache[T Cacheable](client *redis.Client, ttl time.Duration, callBackFn C
 func (c RedisCache[T]) Get(ctx context.Context, key string) (T, error) {
 	var zero T
 
-	result := c.cache.Get(ctx, c.formatKey(key))
+	result := c.client.Get(ctx, c.formatKey(key))
 	if result.Err() != nil {
 		res, err := c.callBack(ctx, key)
 		if err != nil {
@@ -66,7 +66,7 @@ func (c RedisCache[T]) Get(ctx context.Context, key string) (T, error) {
 			return zero, fmt.Errorf("failed to marshal callback result: %w", err)
 		}
 
-		err = c.cache.Set(ctx, c.formatKey(key), b, c.ttl).Err()
+		err = c.client.Set(ctx, c.formatKey(key), b, c.ttl).Err()
 		if err != nil {
 			return zero, fmt.Errorf("failed to store in cache: %w", err)
 		}
@@ -90,7 +90,7 @@ func (c RedisCache[T]) Set(ctx context.Context, item T) error {
 		return err
 	}
 
-	err = c.cache.Set(ctx, c.formatKey(item.Key()), b, c.ttl).Err()
+	err = c.client.Set(ctx, c.formatKey(item.Key()), b, c.ttl).Err()
 	if err != nil {
 		return err
 	}
