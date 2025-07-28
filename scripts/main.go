@@ -23,7 +23,7 @@ func (u *User) Prefix() string {
 }
 
 func main() {
-	c, close, err := cache.NewCache(redis.NewClient(&redis.Options{Addr: "localhost:6379"}), 1*time.Minute, func(ctx context.Context, key string) (*User, error) {
+	c, err := cache.NewCache(redis.NewClient(&redis.Options{Addr: "localhost:6379"}), 1*time.Minute, func(ctx context.Context, key string) (*User, error) {
 		return &User{
 			ID:   2,
 			Name: "CallbackUser",
@@ -33,14 +33,15 @@ func main() {
 		panic(err)
 	}
 
-	defer close()
-
 	user := &User{
 		ID:   1,
 		Name: "User1",
 	}
 
-	c.Set(context.TODO(), user)
+	err = c.Set(context.TODO(), user)
+	if err != nil {
+		panic(err)
+	}
 
 	u, err := c.Get(context.TODO(), user.Key())
 	if err != nil {

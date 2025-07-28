@@ -28,7 +28,7 @@ type RedisCache[T Cacheable] struct {
 type CallBackFn[T Cacheable] func(ctx context.Context, key string) (T, error)
 
 // NewCache returns an instance of Cache[T], a cleanup function and a potential error
-func NewCache[T Cacheable](client *redis.Client, ttl time.Duration, callBackFn CallBackFn[T]) (RedisCache[T], func() error, error) {
+func NewCache[T Cacheable](client *redis.Client, ttl time.Duration, callBackFn CallBackFn[T]) (RedisCache[T], error) {
 	var zero RedisCache[T]
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -36,7 +36,7 @@ func NewCache[T Cacheable](client *redis.Client, ttl time.Duration, callBackFn C
 
 	if err := client.Ping(ctx).Err(); err != nil {
 		client.Close()
-		return zero, nil, fmt.Errorf("failed to connect to Redis at %s: %w", client.Options().Addr, err)
+		return zero, fmt.Errorf("failed to connect to Redis at %s: %w", client.Options().Addr, err)
 	}
 
 	var t T
@@ -47,7 +47,7 @@ func NewCache[T Cacheable](client *redis.Client, ttl time.Duration, callBackFn C
 		prefix:   prefix,
 		ttl:      ttl,
 		callBack: callBackFn,
-	}, client.Close, nil
+	}, nil
 }
 
 // Get returns a value from the cache. On a miss the callback is executed, the result is stored in the cache and returned
@@ -61,14 +61,9 @@ func (c RedisCache[T]) Get(ctx context.Context, key string) (T, error) {
 			return zero, err
 		}
 
-		b, err := json.Marshal(res)
+		err = c.set(ctx, res)
 		if err != nil {
-			return zero, fmt.Errorf("failed to marshal callback result: %w", err)
-		}
-
-		err = c.client.Set(ctx, c.formatKey(key), b, c.ttl).Err()
-		if err != nil {
-			return zero, fmt.Errorf("failed to store in cache: %w", err)
+			return zero, err
 		}
 
 		return res, nil
@@ -85,6 +80,10 @@ func (c RedisCache[T]) Get(ctx context.Context, key string) (T, error) {
 
 // Set saves an item to the cache
 func (c RedisCache[T]) Set(ctx context.Context, item T) error {
+	return c.set(ctx, item)
+}
+
+func (c RedisCache[T]) set(ctx context.Context, item T) error {
 	b, err := json.Marshal(item)
 	if err != nil {
 		return err
