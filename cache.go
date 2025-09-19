@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -11,9 +12,9 @@ import (
 
 // Cacheable represents an item that can be stored or retrieved
 type Cacheable interface {
-	Key() string
-	// Prefix must be nil safe - meaning it should return a constant
-	Prefix() string
+	CacheKey() string
+	// CachePrefix must be nil safe - meaning it should return a constant
+	CachePrefix() string
 }
 
 type RedisCache[T Cacheable] struct {
@@ -27,20 +28,11 @@ type RedisCache[T Cacheable] struct {
 // It takes a key (string) and returns the data (T) and an error.
 type CallBackFn[T Cacheable] func(ctx context.Context, key string) (T, error)
 
-// NewCache returns an instance of Cache[T], a cleanup function and a potential error
+// NewCache returns an instance of Cache[T] and an error
 func NewCache[T Cacheable](client *redis.Client, ttl time.Duration, callBackFn CallBackFn[T]) (RedisCache[T], error) {
-	var zero RedisCache[T]
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := client.Ping(ctx).Err(); err != nil {
-		client.Close()
-		return zero, fmt.Errorf("failed to connect to Redis at %s: %w", client.Options().Addr, err)
-	}
-
 	var t T
-	prefix := t.Prefix()
+
+	prefix := t.CachePrefix()
 
 	return RedisCache[T]{
 		client:   client,
@@ -61,7 +53,7 @@ func (c RedisCache[T]) Get(ctx context.Context, key string) (T, error) {
 			return zero, err
 		}
 
-		err = c.set(ctx, res)
+		err = c.set(ctx, res, false)
 		if err != nil {
 			return zero, err
 		}
@@ -80,17 +72,25 @@ func (c RedisCache[T]) Get(ctx context.Context, key string) (T, error) {
 
 // Set saves an item to the cache
 func (c RedisCache[T]) Set(ctx context.Context, item T) error {
-	return c.set(ctx, item)
+	return c.set(ctx, item, true)
 }
 
-func (c RedisCache[T]) set(ctx context.Context, item T) error {
+func (c RedisCache[T]) set(ctx context.Context, item T, failOnConnectionError bool) error {
 	b, err := json.Marshal(item)
 	if err != nil {
 		return err
 	}
 
-	err = c.client.Set(ctx, c.formatKey(item.Key()), b, c.ttl).Err()
+	err = c.client.Set(ctx, c.formatKey(item.CacheKey()), b, c.ttl).Err()
 	if err != nil {
+		return err
+	}
+
+	return resolveError(err, failOnConnectionError)
+}
+
+func resolveError(err error, shouldError bool) error {
+	if shouldError && strings.Contains(err.Error(), "no such host") {
 		return err
 	}
 

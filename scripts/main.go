@@ -14,11 +14,11 @@ type User struct {
 	Name string
 }
 
-func (u *User) Key() string {
+func (u *User) CacheKey() string {
 	return fmt.Sprintf("%d_%s", u.ID, u.Name)
 }
 
-func (u *User) Prefix() string {
+func (u *User) CachePrefix() string {
 	return "user"
 }
 
@@ -43,7 +43,7 @@ func main() {
 		panic(err)
 	}
 
-	u, err := c.Get(context.TODO(), user.Key())
+	u, err := c.Get(context.TODO(), user.CacheKey())
 	if err != nil {
 		panic(err)
 	}

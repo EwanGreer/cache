@@ -16,8 +16,8 @@ type TestStruct struct {
 	Name string
 }
 
-func (t *TestStruct) Key() string    { return fmt.Sprintf("%d_%s", t.ID, t.Name) }
-func (t *TestStruct) Prefix() string { return "prefix" }
+func (t *TestStruct) CacheKey() string    { return fmt.Sprintf("%d_%s", t.ID, t.Name) }
+func (t *TestStruct) CachePrefix() string { return "prefix" }
 
 const connection = "localhost:6379"
 
@@ -39,7 +39,7 @@ func TestCacheGet(t *testing.T) {
 	err = c.Set(context.Background(), ts)
 	assert.NoError(t, err)
 
-	val, err := c.Get(context.Background(), ts.Key())
+	val, err := c.Get(context.Background(), ts.CacheKey())
 	assert.NoError(t, err)
 	assert.NotNil(t, val)
 }
