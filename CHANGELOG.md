@@ -1,3 +1,10 @@
+## v0.4.0 (2025-10-04)
+
+### Feat
+
+- improve error handling
+- handle connection error retries
+
 ## v0.3.0 (2025-08-15)
 
 ### Feat
