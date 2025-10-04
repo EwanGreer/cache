@@ -78,23 +78,27 @@ func (c RedisCache[T]) Set(ctx context.Context, item T) error {
 func (c RedisCache[T]) set(ctx context.Context, item T, failOnConnectionError bool) error {
 	b, err := json.Marshal(item)
 	if err != nil {
-		return err
+		return resolveError(err, failOnConnectionError)
 	}
 
 	err = c.client.Set(ctx, c.formatKey(item.CacheKey()), b, c.ttl).Err()
 	if err != nil {
-		return err
-	}
-
-	return resolveError(err, failOnConnectionError)
-}
-
-func resolveError(err error, shouldError bool) error {
-	if shouldError && strings.Contains(err.Error(), "no such host") {
-		return err
+		return resolveError(err, failOnConnectionError)
 	}
 
 	return nil
+}
+
+func resolveError(err error, shouldError bool) error {
+	if shouldError {
+		return err
+	}
+
+	if strings.Contains(err.Error(), "no such host") {
+		return nil
+	}
+
+	return err
 }
 
 func (c RedisCache[T]) formatKey(key string) string {
