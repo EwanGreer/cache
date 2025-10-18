@@ -75,6 +75,8 @@ func (c RedisCache[T]) Set(ctx context.Context, item T) error {
 	return c.set(ctx, item, true)
 }
 
+func (c RedisCache[T]) Delete(ctx context.Context, key string) error { return nil }
+
 func (c RedisCache[T]) set(ctx context.Context, item T, failOnConnectionError bool) error {
 	b, err := json.Marshal(item)
 	if err != nil {
@@ -89,12 +91,12 @@ func (c RedisCache[T]) set(ctx context.Context, item T, failOnConnectionError bo
 	return nil
 }
 
-func resolveError(err error, shouldError bool) error {
-	if shouldError {
-		return err
+func resolveError(err error, suppressDNSErrors bool) error {
+	if err == nil {
+		return nil
 	}
 
-	if strings.Contains(err.Error(), "no such host") {
+	if suppressDNSErrors && strings.Contains(err.Error(), "no such host") {
 		return nil
 	}
 
