@@ -3,7 +3,6 @@ package cache
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -76,17 +75,22 @@ func (c RedisCache[T]) Set(ctx context.Context, item T) error {
 	return c.set(ctx, item, true)
 }
 
-func (c RedisCache[T]) Delete(ctx context.Context, key ...string) error {
-	var errs error
-
-	for _, k := range key {
-		err := c.client.Del(ctx, c.formatKey(k)).Err()
-		if err != nil {
-			errs = errors.Join(errs, err)
-		}
+func (c RedisCache[T]) Delete(ctx context.Context, keys ...string) error {
+	if len(keys) == 0 {
+		return nil
 	}
 
-	return errs
+	formattedKeys := make([]string, len(keys))
+	for i, k := range keys {
+		formattedKeys[i] = c.formatKey(k)
+	}
+
+	err := c.client.Del(ctx, formattedKeys...).Err()
+	if err != nil {
+		return fmt.Errorf("Delete: %w", err)
+	}
+
+	return nil
 }
 
 func (c RedisCache[T]) set(ctx context.Context, item T, failOnConnectionError bool) error {

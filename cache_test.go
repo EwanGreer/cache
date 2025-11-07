@@ -86,7 +86,6 @@ func TestCacheDelete(t *testing.T) {
 	assert.Equal(t, "James", val.Name)
 	assert.False(t, callbackCalled)
 
-	// Delete now formats the key internally, so pass the raw cache key
 	err = c.Delete(context.Background(), ts.CacheKey())
 	assert.NoError(t, err)
 
