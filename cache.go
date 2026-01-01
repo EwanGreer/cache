@@ -85,7 +85,7 @@ func (c RedisCache[T]) Delete(ctx context.Context, keys ...string) error {
 		formattedKeys[i] = c.formatKey(k)
 	}
 
-	err := c.client.Del(ctx, formattedKeys...).Err()
+	err := c.client.Unlink(ctx, formattedKeys...).Err()
 	if err != nil {
 		return fmt.Errorf("Delete: %w", err)
 	}
