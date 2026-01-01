@@ -93,6 +93,29 @@ func (c RedisCache[T]) Delete(ctx context.Context, keys ...string) error {
 	return nil
 }
 
+// Incr atomically increments the integer value of a key by 1 and returns the new value.
+// If the key does not exist, it is set to 0 before performing the increment.
+// Useful for rate limiting counters.
+func (c RedisCache[T]) Incr(ctx context.Context, key string) (int64, error) {
+	result, err := c.client.Incr(ctx, c.formatKey(key)).Result()
+	if err != nil {
+		return 0, fmt.Errorf("Incr: %w", err)
+	}
+
+	return result, nil
+}
+
+// Expire sets a timeout on a key. After the timeout has expired, the key will be deleted.
+// Returns true if the timeout was set, false if the key does not exist.
+func (c RedisCache[T]) Expire(ctx context.Context, key string, ttl time.Duration) (bool, error) {
+	result, err := c.client.Expire(ctx, c.formatKey(key), ttl).Result()
+	if err != nil {
+		return false, fmt.Errorf("Expire: %w", err)
+	}
+
+	return result, nil
+}
+
 func (c RedisCache[T]) set(ctx context.Context, item T, failOnConnectionError bool) error {
 	b, err := json.Marshal(item)
 	if err != nil {

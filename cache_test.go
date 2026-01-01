@@ -134,3 +134,67 @@ func TestCacheDelete_Multiple(t *testing.T) {
 	_, err = c.Get(context.Background(), ts2.CacheKey())
 	assert.Error(t, err)
 }
+
+func TestCacheIncr(t *testing.T) {
+	c, err := cache.NewCache(redis.NewClient(&redis.Options{Addr: connection}), 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) {
+		return nil, nil
+	})
+	assert.NoError(t, err)
+
+	key := "rate_limit_test"
+	_ = c.Delete(context.Background(), key)
+
+	count, err := c.Incr(context.Background(), key)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), count)
+
+	count, err = c.Incr(context.Background(), key)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), count)
+
+	count, err = c.Incr(context.Background(), key)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(3), count)
+
+	_ = c.Delete(context.Background(), key)
+}
+
+func TestCacheExpire(t *testing.T) {
+	c, err := cache.NewCache(redis.NewClient(&redis.Options{Addr: connection}), 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) {
+		return nil, nil
+	})
+	assert.NoError(t, err)
+
+	key := "expire_test"
+	_ = c.Delete(context.Background(), key)
+
+	_, err = c.Incr(context.Background(), key)
+	assert.NoError(t, err)
+
+	ok, err := c.Expire(context.Background(), key, 1*time.Second)
+	assert.NoError(t, err)
+	assert.True(t, ok)
+
+	count, err := c.Incr(context.Background(), key)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), count)
+
+	time.Sleep(1100 * time.Millisecond)
+
+	count, err = c.Incr(context.Background(), key)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), count)
+
+	_ = c.Delete(context.Background(), key)
+}
+
+func TestCacheExpire_NonExistentKey(t *testing.T) {
+	c, err := cache.NewCache(redis.NewClient(&redis.Options{Addr: connection}), 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) {
+		return nil, nil
+	})
+	assert.NoError(t, err)
+
+	ok, err := c.Expire(context.Background(), "non_existent_key_12345", 1*time.Minute)
+	assert.NoError(t, err)
+	assert.False(t, ok)
+}
