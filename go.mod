@@ -1,4 +1,4 @@
-module github.com/egreerdp/cache
+module github.com/EwanGreer/cache
 
 go 1.24.2
 
