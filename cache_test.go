@@ -159,6 +159,54 @@ func TestCacheIncr(t *testing.T) {
 	_ = c.Delete(context.Background(), key)
 }
 
+func TestCacheIncrBy(t *testing.T) {
+	c, err := cache.NewCache(redis.NewClient(&redis.Options{Addr: connection}), 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) {
+		return nil, nil
+	})
+	assert.NoError(t, err)
+
+	key := "incr_by_test"
+	_ = c.Delete(context.Background(), key)
+
+	count, err := c.IncrBy(context.Background(), key, 5)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(5), count)
+
+	count, err = c.IncrBy(context.Background(), key, 10)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(15), count)
+
+	count, err = c.IncrBy(context.Background(), key, 3)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(18), count)
+
+	_ = c.Delete(context.Background(), key)
+}
+
+func TestCacheIncrBy_Decrement(t *testing.T) {
+	c, err := cache.NewCache(redis.NewClient(&redis.Options{Addr: connection}), 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) {
+		return nil, nil
+	})
+	assert.NoError(t, err)
+
+	key := "incr_by_decrement_test"
+	_ = c.Delete(context.Background(), key)
+
+	count, err := c.IncrBy(context.Background(), key, 10)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(10), count)
+
+	count, err = c.IncrBy(context.Background(), key, -3)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(7), count)
+
+	count, err = c.IncrBy(context.Background(), key, -10)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(-3), count)
+
+	_ = c.Delete(context.Background(), key)
+}
+
 func TestCacheExpire(t *testing.T) {
 	c, err := cache.NewCache(redis.NewClient(&redis.Options{Addr: connection}), 1*time.Minute, func(ctx context.Context, key string) (*TestStruct, error) {
 		return nil, nil

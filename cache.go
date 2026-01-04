@@ -105,6 +105,18 @@ func (c RedisCache[T]) Incr(ctx context.Context, key string) (int64, error) {
 	return result, nil
 }
 
+// IncrBy atomically increments the integer value of a key by the specified amount and returns the new value.
+// If the key does not exist, it is set to 0 before performing the increment.
+// The value can be negative to decrement.
+func (c RedisCache[T]) IncrBy(ctx context.Context, key string, value int64) (int64, error) {
+	result, err := c.client.IncrBy(ctx, c.formatKey(key), value).Result()
+	if err != nil {
+		return 0, fmt.Errorf("IncrBy: %w", err)
+	}
+
+	return result, nil
+}
+
 // Expire sets a timeout on a key. After the timeout has expired, the key will be deleted.
 // Returns true if the timeout was set, false if the key does not exist.
 func (c RedisCache[T]) Expire(ctx context.Context, key string, ttl time.Duration) (bool, error) {
