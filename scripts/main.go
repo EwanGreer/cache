@@ -22,31 +22,42 @@ func (u *User) CachePrefix() string {
 	return "user"
 }
 
+const (
+	cacheTTL = 1 * time.Minute
+	cacheURL = "localhost:6379"
+)
+
 func main() {
-	c, err := cache.NewCache(redis.NewClient(&redis.Options{Addr: "localhost:6379"}), 1*time.Minute, func(ctx context.Context, key string) (*User, error) {
-		return &User{
-			ID:   2,
-			Name: "CallbackUser",
-		}, nil
-	})
+	client := redis.NewClient(&redis.Options{Addr: cacheURL})
+	c, err := cache.NewCache(client, cacheTTL, cacheCallback)
 	if err != nil {
 		panic(err)
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
 
 	user := &User{
 		ID:   1,
 		Name: "User1",
 	}
 
-	err = c.Set(context.TODO(), user)
+	err = c.Set(ctx, user)
 	if err != nil {
 		panic(err)
 	}
 
-	u, err := c.Get(context.TODO(), user.CacheKey())
+	u, err := c.Get(ctx, user.CacheKey())
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println(u)
+}
+
+func cacheCallback(ctx context.Context, key string) (*User, error) {
+	return &User{
+		ID:   2,
+		Name: "CallbackUser",
+	}, nil
 }
